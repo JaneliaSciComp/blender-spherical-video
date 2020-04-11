@@ -169,6 +169,6 @@ class TestSphericalVideo(unittest.TestCase, VectorsAlmostEqual):
         image.save()
 
         expected = os.path.join(dir, "test_createImage_expected.png")
-        self.assertTrue(filecmp.cmp(image.filepath_raw, expected))
+        self.assertTrue(filecmp.cmp(image.filepath_raw, expected, shallow=False))
 
 unittest.main(argv=["test_sphericalVideo"])
