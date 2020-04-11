@@ -2,6 +2,8 @@
 
 Scripts for [Blender](https://blender.org) to render 360-degree spherical videos.  See [`examples/exampleBasic.avi`](examples/exampleBasic.avi) for an example spherical video, and [`examples/exampleBasicOverview.mov`](examples/exampleBasicOverview.mov) for an overview of what the camera is doing in that example.
 
+![Example video frames][example.png]
+
 Given a Blender file and a camera in that file, the `sphericalVideo.py` script renders each frame of the file's animation as images on a cube around the camera.  It then resamples those images to make a sphere, and unwraps the sphere into a flat image, like a flat map of the spherical Earth.  Map makers have developed a variety of ways to convert a sphere into a flat image, and two are supported:
 * [equirectangular projection](https://en.wikipedia.org/wiki/Equirectangular_projection), which is appropriate for most uses;
 * [Mercator projection](https://en.wikipedia.org/wiki/Mercator_projection), which may be useful in some cases.
