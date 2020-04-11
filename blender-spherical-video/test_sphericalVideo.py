@@ -4,7 +4,7 @@
 
 import argparse
 import bpy
-import functools as ft
+import filecmp
 import math
 from math import pi
 from math import sqrt
@@ -162,8 +162,13 @@ class TestSphericalVideo(unittest.TestCase, VectorsAlmostEqual):
         samplingIndices = createSamplingIndices(sizes, mapToLatLon=mapToLatLonEquirectangular)
         image = createImageFromSamplingIndices(samplingIndices, sizes, cubeImages)
 
-        image.filepath_raw = "test_createImage.png"
+        dir = os.path.dirname(os.path.realpath(__file__))
+
+        image.filepath_raw = os.path.join(dir, "test_createImage.png")
         image.file_format = "PNG"
         image.save()
+
+        expected = os.path.join(dir, "test_createImage_expected.png")
+        self.assertTrue(filecmp.cmp(image.filepath_raw, expected))
 
 unittest.main(argv=["test_sphericalVideo"])

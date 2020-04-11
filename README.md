@@ -77,4 +77,4 @@ Ran 6 tests in 3.899s
 
 OK
 ```
-It also will create a test image `test_createImage.png` in the current directory.
+It also will create a test image `test_createImage.png` in the `blender-spherical-video` subdirectory.
