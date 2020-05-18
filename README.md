@@ -8,7 +8,7 @@ Given a Blender file and a camera in that file, the `sphericalVideo.py` script r
 * [equirectangular projection](https://en.wikipedia.org/wiki/Equirectangular_projection), which is appropriate for most uses;
 * [Mercator projection](https://en.wikipedia.org/wiki/Mercator_projection), which may be useful in some cases.
 
-In the final spherical image, the view along the positive _x_ axis is in the middle, the view along the positive _y_ axis is to the left of the middle, and the view along the positive _z_ axis is at the top.
+In the final spherical image, the central part corresponds to the camera's view with normal (non-spherical) rendering.  That view is along the camera's local _z_ axis, with its local _y_ up.  A different orientation may be more natural, such as having the central part of the spherical image show the view along the positive _x_ axis, with the view along the positive _y_ axis to the left of center, and the view along the positive _z_ axis at the top.  To achieve that particular orientation, set the camera's local rotation to (90, 0, -90) in degrees, with any animation of the camera's orientation (e.g., to simulate looking around in the spherical video) modifying that local rotation.
 
 The [Cycles](https://docs.blender.org/manual/en/latest/render/cycles/index.html) ray-tracing renderer in Blender can produce spherical videos directly, if the camera "Type" is set to "Panoramic" and "Panorama Type" is set to "Equirectangular".  But this approach is very slow, especially because avoiding noise artifacts in the images usually requires a large number of samples per pixel (e.g, at least 1024, even with final denoising enabled).  The `blender-spherical-video` system can work with any renderer, and with the [Eevee](https://docs.blender.org/manual/en/latest/render/eevee/index.html) scanline renderer it produces good results quite quickly.
 
@@ -18,14 +18,14 @@ The `blender-spherical-video` system works in a number of versions of Blender (2
 
 To render the example, open a terminal shell and run the following:
 ```
-blender --background --python blender-spherical-video/sphericalVideo.py  -- -i examples/exampleBasic.blend -o /tmp/example
+blender --background --python blender-spherical-video/sphericalVideo.py -- -i examples/exampleBasic.blend -o /tmp/example
 ```
 
 The frames of the final spherical video will be in `/tmp/example/spherical`, and the intermediate frames from the cube faces will be in directories like `/tmp/example/xNeg`, `/tmp/example/yPos`, etc.   A directory of cache files to speed up subsequent runs will be created in `blender-spherical-video/samplingIndexCache`, assuming that the `blender-spherical-video` subdirectory is writable.
 
 To assemble the final frames into a video, run the following:
 ```
-blender --background --python blender-spherical-video/assembleFrames.py  -- -i /tmp/example/spherical -iw 1280 -ih 720
+blender --background --python blender-spherical-video/assembleFrames.py -- -i /tmp/example/spherical -iw 1280 -ih 720
 ```
 The result is the movie file `/tmp/example/spherical/0001-0096.avi`.  The `assembleFrames.py` script used here matches that in [neuVid](https://github.com/connectome-neuprint/neuVid).
 

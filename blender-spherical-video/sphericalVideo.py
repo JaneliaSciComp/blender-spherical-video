@@ -12,6 +12,8 @@ import os.path
 import sys
 import time
 
+BLENDER_LEGACY_VERSION = bpy.app.version < (2, 80, 0)
+
 # The maximum north latitude (and minimum south latitude) to be used for
 # the Mercator projection (which is undefined at the poles).
 MAX_LAT_MERCATOR = math.radians(85)
@@ -345,6 +347,32 @@ def getCubePixels(cubeImages):
 
     return [face.pixels[:] for face in cubeImages]
 
+def makeEmpty(name, scene):
+    """
+    Returns a new empty node, linked into `scene`.
+    """
+    empty = bpy.data.objects.new(name, None)
+    if BLENDER_LEGACY_VERSION:
+        scene.object.link(empty)
+    else:
+        scene.collection.objects.link(empty)
+    return empty
+
+def makeCamera(name, scene):
+    """
+    Retruns a new camera, appropriate for rendering a cube face, linked into
+    `scene`.
+    """
+    cameraData = bpy.data.cameras.new(name)
+    cameraData.lens_unit = "FOV"
+    cameraData.angle = PI_OVER_2
+    camera = bpy.data.objects.new(name, cameraData)
+    if BLENDER_LEGACY_VERSION:
+        scene.object.link(camera)
+    else:
+        scene.collection.objects.link(camera)
+    return camera
+
 def makeImage(name, sizes, pixels):
     """
     Returns a new `bpy.types.Image` with the specified `name` and `pixels`,
@@ -396,12 +424,8 @@ def render(cameraName, outputBasePath, sizes, start=1, end=250, step=1, mercator
     """
 
     cam = bpy.data.objects[cameraName]
-    # Note that cam.data is the same as bpy.data.cameras[cameraName].
-    cam.data.lens_unit = "FOV"
-    cam.data.angle = PI_OVER_2
 
     scene = bpy.context.scene
-    scene.camera = cam
     scene.render.resolution_x = sizes.cube
     scene.render.resolution_y = sizes.cube
     scene.render.resolution_percentage = 100
@@ -411,13 +435,24 @@ def render(cameraName, outputBasePath, sizes, start=1, end=250, step=1, mercator
     # where the rendered frames are stored, and the Euler angles to orient the
     # camera when rendering that side of the cube.
     views = [
-        { "subdir" : "xPos/", "rot" : (PI_OVER_2, 0,       -PI_OVER_2) },
-        { "subdir" : "xNeg/", "rot" : (PI_OVER_2, 0,        PI_OVER_2) },
-        { "subdir" : "yPos/", "rot" : (PI_OVER_2, 0,        0) },
-        { "subdir" : "yNeg/", "rot" : (PI_OVER_2, 0,        math.pi) },
-        { "subdir" : "zPos/", "rot" : (math.pi,   0,        math.pi) },
-        { "subdir" : "zNeg/", "rot" : (0,         0,        0) }
+        { "subdir" : "xPos", "rot" : (0,         0,         0) },
+        { "subdir" : "xNeg", "rot" : (math.pi,   0,         math.pi) },
+        { "subdir" : "yPos", "rot" : (0,         PI_OVER_2, 0) },
+        { "subdir" : "yNeg", "rot" : (0,        -PI_OVER_2, 0) },
+        { "subdir" : "zPos", "rot" : (0,        -PI_OVER_2, PI_OVER_2) },
+        { "subdir" : "zNeg", "rot" : (0,         PI_OVER_2, PI_OVER_2) }
     ]
+
+    cubeCams = []
+    # This node is the parent of all the cube-face cameras, in case there is a
+    # need for reorienting all of them in unison.
+    cubeCamsParent = makeEmpty("CubeCameras", scene)
+    cubeCamsParent.parent = cam
+    for view in views:
+        cam = makeCamera(view["subdir"], scene)
+        cam.parent = cubeCamsParent
+        cam.rotation_euler = view["rot"]
+        cubeCams.append(cam)
 
     if __name__ == "__main__":
         t0 = time.time()
@@ -441,9 +476,10 @@ def render(cameraName, outputBasePath, sizes, start=1, end=250, step=1, mercator
         scene.frame_set(frame)
         frameStr = str(frame).zfill(4) + ".png"
         cubeImages = []
-        for view in views:
-            cam.rotation_euler = view["rot"]
-            scene.render.filepath = os.path.join(outputBasePath, view["subdir"]) + frameStr
+
+        for cubeCam in cubeCams:
+            scene.camera = cubeCam
+            scene.render.filepath = os.path.join(outputBasePath, cubeCam.name, frameStr)
             bpy.ops.render.render(write_still=True)
             cubeImages.append(bpy.data.images.load(scene.render.filepath))
 
