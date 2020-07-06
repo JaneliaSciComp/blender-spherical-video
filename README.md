@@ -29,6 +29,12 @@ blender --background --python blender-spherical-video/assembleFrames.py -- -i /t
 ```
 The result is the movie file `/tmp/example/spherical/0001-0096.avi`.  The `assembleFrames.py` script used here matches that in [neuVid](https://github.com/connectome-neuprint/neuVid).
 
+Another way to use the final frames is to "pack" them to support higher effective frame rates on a specially modified projector.  Packing involves converting each original frame into grayscale, and then storing three consecutive converted frames in the color channels of one output image.  To pack, run the following:
+```
+blender --background --python blender-spherical-video/packFrames.py -- -i /tmp/example/spherical -o /tmp/example/sphericalPacked
+```
+The default packing order is frame _i_ in the red channel, frame _i_+1 in the green channel, and frame _i_+2 in the blue channel, but the order can be changed with the `--packedOrder` (or `-po`) option (e.g., `-po BGR`).
+
 ## Usage Options
 
 The `-i` and `-o` options in the usage example, above, are two of several options the `sphericalVideo.py` script supports:
@@ -36,6 +42,8 @@ The `-i` and `-o` options in the usage example, above, are two of several option
 `--input` (or `-i`): the path to the Blender file
 
 `--output` (or `-o`, default value: `./spherical-video`): the path to the output directory
+
+`--outputFormat` (or `-of`, default value: `PNG`): the image format for output files, from among `BMP` (.bmp), `IRIS` (.sgi), `PNG` (.png), `JPEG` (.jpg), `JPEG2000` (.jp2), `TARGA` (.tga), `CINEON` (.cin), `DPX` (.dpx), `OPEN_EXR` (.exr), `HDR` (.hdr), `TIFF` (.tif)
 
 `--camera` (or `-c`, default value: `"Camera"`): the name of the camera in the input Blender file to use for rendering
 
