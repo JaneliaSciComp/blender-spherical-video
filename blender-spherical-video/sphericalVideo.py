@@ -12,6 +12,9 @@ import os.path
 import sys
 import time
 
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from utilsFormats import fileFormatToExt, unknownFormatErrorMessage
+
 BLENDER_LEGACY_VERSION = bpy.app.version < (2, 80, 0)
 
 # The maximum north latitude (and minimum south latitude) to be used for
@@ -411,7 +414,7 @@ def createImageFromSamplingIndices(samplingIndices, sizes, cubeImages):
         iResult += ChannelsPerPixel
     return makeImage("createImageFromSamplingIndices", sizes, resultPixels)
 
-def render(cameraName, outputBasePath, sizes, start=1, end=250, step=1, mercator=False, cache=True):
+def render(cameraName, outputBasePath, sizes, start=1, end=250, step=1, mercator=False, format="PNG", ext=".png", cache=True):
     """
     Renders an animation of the spherical image around the camera named
     `cameraName`.  The spherical image is built by resampling images on the
@@ -420,7 +423,9 @@ def render(cameraName, outputBasePath, sizes, start=1, end=250, step=1, mercator
     `outputBasePath`.  The intermedial cube image frames are stored in other
     subdirectories of `outputBasePath`.  The dimensions of the intermediate and
     final images are specified by `sizes`.  The frames included in the animation
-    are specified by `start`, `end` and `step`.
+    are specified by `start`, `end` and `step`.  The file format of the output
+    images is `format`, which must be one of Blender's supported formats, and
+    `ext` is the corresponding file extension.
     """
 
     cam = bpy.data.objects[cameraName]
@@ -429,7 +434,7 @@ def render(cameraName, outputBasePath, sizes, start=1, end=250, step=1, mercator
     scene.render.resolution_x = sizes.cube
     scene.render.resolution_y = sizes.cube
     scene.render.resolution_percentage = 100
-    scene.render.image_settings.file_format = "PNG"
+    scene.render.image_settings.file_format = format
 
     # For each side of the cube, the name of subdirectory of `outputBasePath`
     # where the rendered frames are stored, and the Euler angles to orient the
@@ -474,7 +479,7 @@ def render(cameraName, outputBasePath, sizes, start=1, end=250, step=1, mercator
     frame = start
     while frame <= end:
         scene.frame_set(frame)
-        frameStr = str(frame).zfill(4) + ".png"
+        frameStr = str(frame).zfill(4) + ext
         cubeImages = []
 
         for cubeCam in cubeCams:
@@ -490,7 +495,7 @@ def render(cameraName, outputBasePath, sizes, start=1, end=250, step=1, mercator
         image = createImageFromSamplingIndices(samplingIndices, sizes, cubeImages)
 
         image.filepath_raw = os.path.join(outputSphericalPath, frameStr)
-        image.file_format = "PNG"
+        image.file_format = format
         image.save()
 
         if __name__ == "__main__":
@@ -515,6 +520,8 @@ if __name__ == "__main__":
     parser.add_argument("--camera", "-c", dest="cameraName", help="camera name from .blend file")
     parser.set_defaults(outputBasePath="./spherical-video")
     parser.add_argument("--output", "-o", dest="outputBasePath", help="path to output directory")
+    parser.set_defaults(outputFormat="PNG")
+    parser.add_argument("--outputFormat", "-of", dest="outputFormat", help="image format for output")
     parser.set_defaults(width=1280)
     parser.add_argument("--width", "-ow", type=int, dest="width", help="width of output spherical image")
     parser.set_defaults(height=720)
@@ -532,6 +539,13 @@ if __name__ == "__main__":
     parser.set_defaults(cache=True)
     parser.add_argument("--nocache", "-nc", dest="cache", action="store_false", help="do NOT use caching")
     args = parser.parse_args(argv)
+
+    outputFormat = args.outputFormat.upper()
+    if not outputFormat in fileFormatToExt:
+        print(unknownFormatErrorMessage(args.outputFormat))
+        quit()
+    outputExt = fileFormatToExt[outputFormat]
+    print("Using output format: '{}'".format(outputFormat))
 
     bpy.ops.wm.open_mainfile(filepath=args.inputBlenderFile)
 
@@ -552,7 +566,7 @@ if __name__ == "__main__":
     if args.step != None:
         step = args.step
 
-    render(args.cameraName, args.outputBasePath, sizes, start, end, step, mercator, args.cache)
+    render(args.cameraName, args.outputBasePath, sizes, start, end, step, mercator, outputFormat, outputExt, args.cache)
 
     timeEnd = datetime.datetime.now()
     print("Rendering started at {}".format(timeStart))
